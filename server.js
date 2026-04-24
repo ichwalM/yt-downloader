@@ -1,6 +1,14 @@
 'use strict';
 
 require('dotenv').config();
+
+// ─── Silence logs in production ───────────────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  console.log   = () => {};
+  console.info  = () => {};
+  console.debug = () => {};
+  // console.warn & console.error tetap aktif untuk alert kritis
+}
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
