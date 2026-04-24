@@ -1,0 +1,32 @@
+{
+  "name": "yt-downloader-walz",
+  "version": "1.0.0",
+  "description": "YouTube Video & Audio Downloader Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "youtube",
+    "downloader",
+    "mp4",
+    "mp3"
+  ],
+  "author": "Walz",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "express-validator": "^7.2.0",
+    "helmet": "^7.1.0",
+    "node-cache": "^5.1.2",
+    "socket.io": "^4.7.5",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
