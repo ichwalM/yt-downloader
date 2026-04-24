@@ -1,458 +1,419 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="YT-Downloader — Unduh video YouTube sebagai MP4 atau audio MP3 dengan berbagai pilihan kualitas. Cepat, bersih, dan mudah digunakan." />
-  <title>YT-Downloader — YouTube Video & Audio Downloader</title>
-
-  <!-- Tailwind CSS CDN -->
+  <meta name="description" content="YT-Downloader — Unduh video YouTube sebagai MP4 atau audio MP3." />
+  <title>YT-DOWNLOADER — SYSTEM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace']
+            sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            display: ['Bebas Neue', 'sans-serif'],
           },
           colors: {
-            ink: {
-              50:  '#FAFAFA',
-              100: '#F4F4F5',
-              200: '#E4E4E7',
-              300: '#D4D4D8',
-              400: '#A1A1AA',
-              500: '#71717A',
-              600: '#52525B',
-              700: '#3F3F46',
-              800: '#27272A',
-              900: '#18181B',
-              950: '#09090B',
-            }
-          },
-          animation: {
-            'fade-in': 'fadeIn 0.3s ease-out',
-            'slide-up': 'slideUp 0.4s ease-out',
-            'pulse-bar': 'pulseBar 1.5s ease-in-out infinite',
-            'spin-slow': 'spin 1.5s linear infinite',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0' },
-              '100%': { opacity: '1' }
-            },
-            slideUp: {
-              '0%': { opacity: '0', transform: 'translateY(12px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' }
-            },
-            pulseBar: {
-              '0%, 100%': { opacity: '1' },
-              '50%': { opacity: '0.6' }
-            }
+            bg:      '#080808',
+            surface: '#111111',
+            border:  '#1E1E1E',
+            blue:    '#2563EB',
+            'blue-dim': '#1D4ED8',
+            dim:     '#333333',
+            muted:   '#555555',
+            subtle:  '#888888',
+            primary: '#F0F0F0',
           }
         }
       }
     }
   </script>
-
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-
-  <!-- Socket.io Client -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="/socket.io/socket.io.js"></script>
 
   <style>
-    * { -webkit-font-smoothing: antialiased; }
+    * { -webkit-font-smoothing: antialiased; box-sizing: border-box; }
+    html, body { background: #080808; color: #F0F0F0; min-height: 100vh; }
 
-    /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #F4F4F5; }
-    ::-webkit-scrollbar-thumb { background: #D4D4D8; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #A1A1AA; }
-
-    /* Progress bar animation */
-    .progress-fill {
-      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      background: linear-gradient(90deg, #18181B 0%, #3F3F46 50%, #18181B 100%);
-      background-size: 200% 100%;
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
-    .progress-fill.processing {
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    }
+
+    main, nav, header { position: relative; z-index: 1; }
+
+    /* Blue left accent border on cards */
+    .card {
+      background: #111111;
+      border: 1px solid #1E1E1E;
+      border-left: 2px solid #2563EB;
+    }
+    .card-plain {
+      background: #111111;
+      border: 1px solid #1E1E1E;
+    }
+
+    /* Input */
+    .inp {
+      background: #080808;
+      border: 1px solid #1E1E1E;
+      color: #F0F0F0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      width: 100%; height: 40px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .inp:focus { border-color: #2563EB; }
+    .inp::placeholder { color: #333; }
+
+    textarea.inp { height: 120px; padding: 10px 12px; resize: none; }
+
+    /* Buttons */
+    .btn-primary {
+      background: #2563EB; color: #F0F0F0;
+      border: 1px solid #2563EB;
+      height: 40px; padding: 0 20px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase;
+      cursor: pointer; transition: background .15s, color .15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: #1D4ED8; border-color: #1D4ED8; }
+    .btn-primary:disabled { opacity: .3; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent; color: #888;
+      border: 1px solid #1E1E1E;
+      height: 40px; padding: 0 20px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; font-weight: 500;
+      letter-spacing: .06em; text-transform: uppercase;
+      cursor: pointer; transition: border-color .15s, color .15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-ghost:hover { border-color: #F0F0F0; color: #F0F0F0; }
+
+    .btn-outline-white {
+      background: transparent; color: #F0F0F0;
+      border: 1px solid #333;
+      height: 36px; padding: 0 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      cursor: pointer; transition: border-color .15s, background .15s;
+      display: inline-flex; align-items: center;
+    }
+    .btn-outline-white:hover { border-color: #F0F0F0; }
+    .btn-outline-white.active { background: #F0F0F0; color: #080808; border-color: #F0F0F0; }
+
+    /* Tab */
+    .tab { border-bottom: 1px solid #1E1E1E; display: flex; gap: 0; }
+    .tab-btn {
+      padding: 10px 20px 10px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      color: #333; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: #2563EB; border-bottom-color: #2563EB; }
+    .tab-btn:not(.active):hover { color: #888; }
+
+    /* Label */
+    .lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: .12em;
+      text-transform: uppercase; color: #555;
+      display: block; margin-bottom: 8px;
+    }
+
+    /* Progress bar */
+    .prog-track { height: 2px; background: #1E1E1E; }
+    .prog-fill {
+      height: 100%; background: #2563EB;
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    .prog-fill.processing {
+      background: linear-gradient(90deg, #2563EB 0%, #60A5FA 50%, #2563EB 100%);
+      background-size: 200%;
       animation: shimmer 1.2s infinite linear;
     }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    /* Tab indicator */
-    .tab-btn.active {
-      color: #09090B;
-      border-bottom-color: #09090B;
-    }
-
-    /* Quality option selected state */
-    .quality-btn.selected {
-      background-color: #09090B;
-      color: #FAFAFA;
-      border-color: #09090B;
-    }
-
-    /* Format button selected */
-    .format-btn.selected {
-      background-color: #09090B;
-      color: #FAFAFA;
-      border-color: #09090B;
-    }
-
-    /* Thumbnail fade-in */
-    .thumbnail-img { transition: opacity 0.3s ease; }
-
-    /* Toast notification */
-    .toast {
-      animation: toastIn 0.3s ease-out forwards;
-    }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateY(20px) scale(0.95); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    /* Drag effect on batch textarea */
-    .batch-textarea:focus {
-      outline: none;
-      border-color: #18181B;
-    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
     /* Spinner */
     .spinner {
-      border: 2px solid #E4E4E7;
-      border-top-color: #18181B;
+      width: 14px; height: 14px;
+      border: 1.5px solid #333;
+      border-top-color: #2563EB;
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to{transform:rotate(360deg)} }
 
-    /* Hover lift */
-    .hover-lift {
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    /* Online dot */
+    .dot-online { width:6px;height:6px;border-radius:50%;background:#2563EB;animation:pulse 2s infinite; }
+    .dot-offline { width:6px;height:6px;border-radius:50%;background:#333; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+    /* Toast */
+    .toast { animation: toastIn .25s ease-out forwards; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Quality / format toggle */
+    .fmt-btn, .qual-btn {
+      height: 34px; padding: 0 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      background: transparent; color: #555;
+      border: 1px solid #1E1E1E;
+      cursor: pointer; transition: all .15s;
     }
-    .hover-lift:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
+    .fmt-btn:hover, .qual-btn:hover { border-color: #555; color: #F0F0F0; }
+    .fmt-btn.active, .qual-btn.active { background: #2563EB; color: #F0F0F0; border-color: #2563EB; }
+    .qual-btn:disabled { opacity: .25; cursor: not-allowed; }
+
+    /* Thumbnail */
+    #video-thumbnail { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; filter: grayscale(20%); }
+
+    /* Select */
+    select.inp { cursor: pointer; }
+
+    .slide-up { animation: slideUp .3s ease-out; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
   </style>
 </head>
+<body>
 
-<body class="bg-ink-50 text-ink-950 font-sans min-h-screen">
-
-  <!-- ─── Navbar ─────────────────────────────────────────────────────────────── -->
-  <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b border-ink-200">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <!-- Logo icon -->
-        <div class="w-7 h-7 bg-ink-950 rounded flex items-center justify-center flex-shrink-0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-white">
-            <path d="M5 3l14 9-14 9V3z" fill="currentColor"/>
-          </svg>
-        </div>
-        <span class="font-semibold text-sm tracking-tight text-ink-950">YT-Downloader</span>
+<!-- ── NAV ──────────────────────────────────────────────────────────────────── -->
+<nav style="border-bottom:1px solid #1E1E1E;position:sticky;top:0;z-index:50;background:rgba(8,8,8,.95);backdrop-filter:blur(8px);">
+  <div style="max-width:960px;margin:0 auto;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;background:#2563EB;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 3l14 9-14 9V3z" fill="white"/></svg>
       </div>
-
-      <div class="flex items-center gap-4">
-        <span id="health-indicator" class="flex items-center gap-1.5 text-xs text-ink-500">
-          <span class="w-1.5 h-1.5 rounded-full bg-ink-300" id="health-dot"></span>
-          <span id="health-text">Connecting...</span>
-        </span>
-        <a href="#history-section" class="text-xs text-ink-500 hover:text-ink-950 transition-colors font-medium">History</a>
-      </div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.1em;color:#F0F0F0;">YT-DOWNLOADER</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#2563EB;letter-spacing:.08em;margin-left:4px;">v2.0</span>
     </div>
-  </nav>
-
-  <!-- ─── Hero Header ────────────────────────────────────────────────────────── -->
-  <header class="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
-    <h1 class="text-2xl font-semibold text-ink-950 tracking-tight">Download YouTube</h1>
-    <p class="text-sm text-ink-500 mt-1">Unduh video MP4 atau audio MP3 dari YouTube dengan cepat dan mudah.</p>
-  </header>
-
-  <!-- ─── Main Content ───────────────────────────────────────────────────────── -->
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 pb-16">
-
-    <!-- Disclaimer -->
-    <div class="mb-5 flex items-start gap-2.5 bg-ink-100 border border-ink-200 rounded-lg px-4 py-3">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-ink-500 flex-shrink-0 mt-0.5">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <p class="text-xs text-ink-600 leading-relaxed">
-        Aplikasi ini hanya untuk penggunaan pribadi dan edukasi. Pastikan Anda memiliki hak atas konten yang diunduh. Mengunduh konten yang dilindungi hak cipta tanpa izin dapat melanggar kebijakan YouTube dan hukum setempat.
-      </p>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="health-indicator" style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;letter-spacing:.08em;">
+        <span class="dot-offline" id="health-dot"></span>
+        <span id="health-text">CONNECTING</span>
+      </span>
     </div>
+  </div>
+</nav>
 
-    <!-- ─── Tabs ───────────────────────────────────────────────────────────── -->
-    <div class="border-b border-ink-200 mb-6 flex gap-0">
-      <button id="tab-single" class="tab-btn active pb-2.5 mr-6 text-sm font-medium border-b-2 border-transparent transition-colors" onclick="switchTab('single')">
-        Single URL
-      </button>
-      <button id="tab-batch" class="tab-btn text-ink-500 pb-2.5 text-sm font-medium border-b-2 border-transparent transition-colors" onclick="switchTab('batch')">
-        Batch Download
-      </button>
-    </div>
+<!-- ── HEADER ──────────────────────────────────────────────────────────────── -->
+<header style="max-width:960px;margin:0 auto;padding:40px 24px 24px;">
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#2563EB;letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;">// MEDIA DOWNLOADER SYSTEM</p>
+  <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6vw,60px);letter-spacing:.05em;color:#F0F0F0;line-height:1;margin:0 0 10px;">DOWNLOAD<br>YOUTUBE</h1>
+  <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;letter-spacing:.04em;">Unduh video MP4 atau audio MP3 — cepat, bersih, tanpa iklan.</p>
+</header>
 
-    <!-- ─── Single URL Panel ───────────────────────────────────────────────── -->
-    <div id="panel-single" class="animate-fade-in">
+<!-- ── MAIN ────────────────────────────────────────────────────────────────── -->
+<main style="max-width:960px;margin:0 auto;padding:0 24px 80px;">
 
-      <!-- URL Input -->
-      <div class="bg-white border border-ink-200 rounded-xl p-5 mb-4 hover-lift">
-        <label for="url-input" class="block text-xs font-medium text-ink-500 uppercase tracking-wider mb-2.5">YouTube URL</label>
-        <div class="flex gap-2.5">
-          <div class="relative flex-1">
-            <input
-              id="url-input"
-              type="url"
-              placeholder="https://www.youtube.com/watch?v=..."
-              class="w-full h-10 px-3 text-sm bg-ink-50 border border-ink-200 rounded-lg font-mono placeholder:text-ink-300 placeholder:font-sans focus:outline-none focus:border-ink-950 transition-colors"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <!-- Validation indicator -->
-            <div id="url-indicator" class="absolute right-3 top-1/2 -translate-y-1/2 hidden">
-              <div id="url-valid-icon" class="hidden">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-ink-950">
-                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div id="url-invalid-icon" class="hidden">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-ink-400">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <button
-            id="fetch-btn"
-            onclick="fetchVideoInfo()"
-            class="h-10 px-4 bg-ink-950 text-white text-sm font-medium rounded-lg hover:bg-ink-800 transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled
-          >
-            <span id="fetch-btn-text">Cek Info</span>
-            <div id="fetch-spinner" class="spinner w-4 h-4 hidden"></div>
-          </button>
-        </div>
-        <p id="url-error" class="text-xs text-ink-500 mt-2 hidden"></p>
-      </div>
+  <!-- Disclaimer -->
+  <div style="display:flex;align-items:flex-start;gap:10px;border:1px solid #1E1E1E;border-left:2px solid #555;padding:12px 16px;margin-bottom:28px;background:#111;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="color:#555;flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;line-height:1.7;letter-spacing:.03em;">
+      DISCLAIMER — Hanya untuk penggunaan pribadi &amp; edukasi. Pastikan Anda memiliki hak atas konten yang diunduh.
+    </p>
+  </div>
 
-      <!-- Video Info Card (hidden until fetched) -->
-      <div id="video-info-card" class="hidden bg-white border border-ink-200 rounded-xl overflow-hidden mb-4 animate-slide-up">
-        <div class="flex gap-0">
-          <!-- Thumbnail -->
-          <div class="relative flex-shrink-0 w-36 sm:w-48 bg-ink-100">
-            <img id="video-thumbnail" src="" alt="Thumbnail" class="thumbnail-img w-full h-full object-cover" style="aspect-ratio:16/9" />
-            <div id="video-duration-badge" class="absolute bottom-2 right-2 bg-black/80 text-white text-xs font-mono px-1.5 py-0.5 rounded">
-              0:00
-            </div>
-          </div>
-          <!-- Info -->
-          <div class="flex-1 p-4 min-w-0">
-            <p class="text-xs text-ink-400 uppercase tracking-wider mb-1">Video</p>
-            <h2 id="video-title" class="text-sm font-semibold text-ink-950 leading-tight mb-2 line-clamp-2"></h2>
-            <div class="flex flex-wrap gap-x-4 gap-y-1 mb-3">
-              <span class="flex items-center gap-1 text-xs text-ink-500">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" class="flex-shrink-0">
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                  <path d="M4 21v-1a8 8 0 0116 0v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <span id="video-channel"></span>
-              </span>
-              <span class="flex items-center gap-1 text-xs text-ink-500">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" class="flex-shrink-0">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <span id="video-duration-text"></span>
-              </span>
-            </div>
-            <!-- Clear button -->
-            <button onclick="clearVideoInfo()" class="text-xs text-ink-400 hover:text-ink-950 transition-colors underline">
-              Ganti URL
-            </button>
+  <!-- Tabs -->
+  <div class="tab" style="margin-bottom:24px;">
+    <button id="tab-single" class="tab-btn active" onclick="switchTab('single')">Single URL</button>
+    <button id="tab-batch" class="tab-btn" style="margin-left:20px;" onclick="switchTab('batch')">Batch Download</button>
+  </div>
+
+  <!-- ── SINGLE PANEL ──────────────────────────────────────────────────────── -->
+  <div id="panel-single">
+
+    <!-- URL Input -->
+    <div class="card" style="padding:20px;margin-bottom:16px;">
+      <label for="url-input" class="lbl">// YouTube URL</label>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;position:relative;">
+          <input id="url-input" type="url" class="inp"
+            placeholder="https://www.youtube.com/watch?v=..."
+            autocomplete="off" spellcheck="false" />
+          <div id="url-indicator" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);">
+            <svg id="url-valid-icon" style="display:none;" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg id="url-invalid-icon" style="display:none;" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#333" stroke-width="2" stroke-linecap="round"/></svg>
           </div>
         </div>
+        <button id="fetch-btn" onclick="fetchVideoInfo()" class="btn-primary" disabled>
+          <span id="fetch-btn-text">CEK INFO</span>
+          <div id="fetch-spinner" class="spinner" style="display:none;border-top-color:#F0F0F0;"></div>
+        </button>
       </div>
+      <p id="url-error" style="display:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:#EF4444;margin-top:8px;letter-spacing:.04em;"></p>
+    </div>
 
-      <!-- Format & Quality Selector -->
-      <div id="format-quality-section" class="hidden bg-white border border-ink-200 rounded-xl p-5 mb-4 animate-slide-up">
+    <!-- Video Info Card -->
+    <div id="video-info-card" style="display:none;" class="card slide-up" style="margin-bottom:16px;">
+      <div style="display:flex;gap:0;">
+        <div style="flex-shrink:0;width:140px;background:#0A0A0A;overflow:hidden;">
+          <img id="video-thumbnail" src="" alt="Thumbnail" />
+          <div id="video-duration-badge" style="background:#2563EB;font-family:'JetBrains Mono',monospace;font-size:10px;color:#F0F0F0;padding:3px 8px;text-align:center;letter-spacing:.04em;">0:00</div>
+        </div>
+        <div style="flex:1;padding:16px;min-width:0;">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#2563EB;letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;">// VIDEO INFO</p>
+          <h2 id="video-title" style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#F0F0F0;line-height:1.4;margin-bottom:10px;"></h2>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:5px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21v-1a8 8 0 0116 0v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span id="video-channel"></span>
+            </span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:5px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span id="video-duration-text"></span>
+            </span>
+          </div>
+          <button onclick="clearVideoInfo()" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#333;background:none;border:none;cursor:pointer;padding:0;letter-spacing:.06em;text-transform:uppercase;transition:color .15s;" onmouseover="this.style.color='#F0F0F0'" onmouseout="this.style.color='#333'">[ GANTI URL ]</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Format & Quality -->
+    <div id="format-quality-section" style="display:none;" class="card slide-up" style="padding:20px;margin-bottom:16px;">
+      <div style="padding:20px;">
         <!-- Format -->
-        <div class="mb-5">
-          <p class="text-xs font-medium text-ink-500 uppercase tracking-wider mb-3">Format</p>
-          <div class="flex gap-2">
-            <button id="fmt-mp4" class="format-btn selected flex-1 h-9 rounded-lg border border-ink-200 text-sm font-medium transition-all" onclick="selectFormat('mp4')">
-              MP4 — Video
-            </button>
-            <button id="fmt-mp3" class="format-btn flex-1 h-9 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 transition-all" onclick="selectFormat('mp3')">
-              MP3 — Audio
-            </button>
+        <div style="margin-bottom:20px;">
+          <label class="lbl">// Format</label>
+          <div style="display:flex;gap:6px;">
+            <button id="fmt-mp4" class="fmt-btn active" onclick="selectFormat('mp4')">MP4 — Video</button>
+            <button id="fmt-mp3" class="fmt-btn" onclick="selectFormat('mp3')">MP3 — Audio</button>
           </div>
         </div>
-
         <!-- Quality -->
-        <div>
-          <p class="text-xs font-medium text-ink-500 uppercase tracking-wider mb-3">Kualitas</p>
-          <!-- Video quality options -->
-          <div id="video-qualities" class="flex flex-wrap gap-2">
-            <button class="quality-btn selected h-9 px-4 rounded-lg border border-ink-200 text-sm font-medium transition-all" data-quality="360p" onclick="selectQuality(this)">360p</button>
-            <button class="quality-btn h-9 px-4 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 transition-all" data-quality="720p" onclick="selectQuality(this)">720p</button>
-            <button class="quality-btn h-9 px-4 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 transition-all" data-quality="1080p" onclick="selectQuality(this)">1080p <span class="text-xs opacity-60">HD</span></button>
+        <div style="margin-bottom:20px;">
+          <label class="lbl">// Kualitas</label>
+          <div id="video-qualities" style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="qual-btn active" data-quality="360p" onclick="selectQuality(this)">360p</button>
+            <button class="qual-btn" data-quality="720p" onclick="selectQuality(this)">720p</button>
+            <button class="qual-btn" data-quality="1080p" onclick="selectQuality(this)">1080p <span style="font-size:9px;opacity:.6;">HD</span></button>
           </div>
-          <!-- Audio quality options -->
-          <div id="audio-qualities" class="hidden flex-wrap gap-2">
-            <button class="quality-btn h-9 px-4 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 transition-all" data-quality="128kbps" onclick="selectQuality(this)">128 kbps</button>
-            <button class="quality-btn h-9 px-4 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 transition-all" data-quality="192kbps" onclick="selectQuality(this)">192 kbps</button>
-            <button class="quality-btn selected h-9 px-4 rounded-lg border border-ink-200 text-sm font-medium transition-all" data-quality="320kbps" onclick="selectQuality(this)">320 kbps <span class="text-xs opacity-60">HQ</span></button>
+          <div id="audio-qualities" style="display:none;flex-wrap:wrap;gap:6px;">
+            <button class="qual-btn" data-quality="128kbps" onclick="selectQuality(this)">128 kbps</button>
+            <button class="qual-btn" data-quality="192kbps" onclick="selectQuality(this)">192 kbps</button>
+            <button class="qual-btn active" data-quality="320kbps" onclick="selectQuality(this)">320 kbps <span style="font-size:9px;opacity:.6;">HQ</span></button>
           </div>
         </div>
-
-        <!-- Download Button -->
-        <div class="mt-5 pt-4 border-t border-ink-100">
-          <button
-            id="download-btn"
-            onclick="startSingleDownload()"
-            class="w-full h-11 bg-ink-950 text-white text-sm font-semibold rounded-lg hover:bg-ink-800 active:bg-ink-950 transition-colors flex items-center justify-center gap-2.5"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="flex-shrink-0">
-              <path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span id="download-btn-text">Mulai Download</span>
+        <!-- Download Btn -->
+        <div style="border-top:1px solid #1E1E1E;padding-top:16px;">
+          <button id="download-btn" onclick="startSingleDownload()" class="btn-primary" style="width:100%;justify-content:center;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span id="download-btn-text">MULAI DOWNLOAD</span>
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Progress Section -->
-      <div id="progress-section" class="hidden bg-white border border-ink-200 rounded-xl p-5 mb-4 animate-slide-up">
-        <div class="flex items-start justify-between mb-3">
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-ink-950 truncate" id="progress-title">Mengunduh...</p>
-            <p class="text-xs text-ink-400 mt-0.5" id="progress-subtitle">Memulai proses download</p>
+    <!-- Progress -->
+    <div id="progress-section" style="display:none;" class="card slide-up">
+      <div style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div style="min-width:0;flex:1;">
+            <p id="progress-title" style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500;color:#F0F0F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></p>
+            <p id="progress-subtitle" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-top:3px;letter-spacing:.04em;"></p>
           </div>
-          <span id="progress-percentage" class="text-sm font-mono font-semibold text-ink-950 ml-4 flex-shrink-0">0%</span>
+          <span id="progress-percentage" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:#2563EB;margin-left:16px;flex-shrink:0;">0%</span>
         </div>
-        <!-- Progress bar -->
-        <div class="h-1.5 bg-ink-100 rounded-full overflow-hidden">
-          <div id="progress-bar" class="progress-fill h-full rounded-full" style="width: 0%"></div>
+        <div class="prog-track">
+          <div id="progress-bar" class="prog-fill" style="width:0%"></div>
         </div>
-        <!-- Status tags -->
-        <div class="flex items-center gap-2 mt-3">
-          <span id="progress-status-badge" class="inline-flex items-center gap-1 text-xs text-ink-500 font-medium">
-            <div class="spinner w-3 h-3"></div>
-            <span>Mempersiapkan...</span>
-          </span>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+          <div class="spinner"></div>
+          <span id="progress-status-label" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;letter-spacing:.04em;">MEMPERSIAPKAN...</span>
         </div>
-      </div>
-
-      <!-- Completed Download Card -->
-      <div id="complete-card" class="hidden bg-white border border-ink-200 rounded-xl p-5 mb-4 animate-slide-up">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 bg-ink-950 rounded-lg flex items-center justify-center flex-shrink-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-white">
-              <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-ink-950">Download Selesai</p>
-            <p class="text-xs text-ink-400" id="complete-filename">-</p>
-          </div>
-        </div>
-        <a id="complete-download-link" href="#" class="flex items-center justify-center gap-2 h-10 w-full bg-ink-950 text-white text-sm font-medium rounded-lg hover:bg-ink-800 transition-colors">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          Simpan File
-        </a>
-        <button onclick="resetForm()" class="w-full mt-2 h-10 text-sm text-ink-500 hover:text-ink-950 transition-colors rounded-lg">
-          Download Lagi
-        </button>
-      </div>
-
-    </div><!-- /panel-single -->
-
-    <!-- ─── Batch Download Panel ────────────────────────────────────────────── -->
-    <div id="panel-batch" class="hidden animate-fade-in">
-      <div class="bg-white border border-ink-200 rounded-xl p-5 mb-4">
-        <label for="batch-textarea" class="block text-xs font-medium text-ink-500 uppercase tracking-wider mb-2.5">
-          YouTube URLs — Satu URL per baris (maks. 10)
-        </label>
-        <textarea
-          id="batch-textarea"
-          class="batch-textarea w-full h-36 px-3 py-2.5 text-xs font-mono bg-ink-50 border border-ink-200 rounded-lg placeholder:text-ink-300 placeholder:font-sans resize-none transition-colors"
-          placeholder="https://www.youtube.com/watch?v=example1&#10;https://www.youtube.com/watch?v=example2&#10;https://youtu.be/example3"
-          spellcheck="false"
-        ></textarea>
-
-        <!-- Batch Format & Quality -->
-        <div class="grid grid-cols-2 gap-3 mt-4">
-          <div>
-            <p class="text-xs font-medium text-ink-500 uppercase tracking-wider mb-2">Format</p>
-            <div class="flex gap-1.5">
-              <button id="batch-fmt-mp4" class="format-btn selected flex-1 h-9 rounded-lg border border-ink-200 text-xs font-medium transition-all" onclick="selectBatchFormat('mp4')">MP4</button>
-              <button id="batch-fmt-mp3" class="format-btn flex-1 h-9 rounded-lg border border-ink-200 text-xs font-medium text-ink-600 transition-all" onclick="selectBatchFormat('mp3')">MP3</button>
-            </div>
-          </div>
-          <div>
-            <p class="text-xs font-medium text-ink-500 uppercase tracking-wider mb-2">Kualitas</p>
-            <select id="batch-quality" class="w-full h-9 px-3 text-xs bg-ink-50 border border-ink-200 rounded-lg focus:outline-none focus:border-ink-950 transition-colors">
-              <option value="720p">720p</option>
-              <option value="360p">360p</option>
-              <option value="1080p">1080p</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Batch Download Button -->
-        <button
-          id="batch-download-btn"
-          onclick="startBatchDownload()"
-          class="mt-4 w-full h-11 bg-ink-950 text-white text-sm font-semibold rounded-lg hover:bg-ink-800 transition-colors flex items-center justify-center gap-2.5"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          Mulai Batch Download
-        </button>
-      </div>
-
-      <!-- Batch Queue Display -->
-      <div id="batch-queue" class="space-y-2.5"></div>
-    </div><!-- /panel-batch -->
-
-    <!-- ─── Download History ────────────────────────────────────────────────── -->
-    <div id="history-section" class="mt-10">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm font-semibold text-ink-950">Download History</h2>
-        <button onclick="loadHistory()" class="text-xs text-ink-500 hover:text-ink-950 transition-colors flex items-center gap-1">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-            <path d="M4 4v5h5M20 20v-5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 9a8 8 0 00-15.5 2M4 15a8 8 0 0015.5-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          Refresh
-        </button>
-      </div>
-      <div id="history-container">
-        <p class="text-sm text-ink-400 text-center py-8">Belum ada riwayat download.</p>
       </div>
     </div>
 
-  </main>
+    <!-- Complete Card -->
+    <div id="complete-card" style="display:none;" class="card slide-up">
+      <div style="padding:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:30px;height:30px;background:#2563EB;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#2563EB;letter-spacing:.12em;text-transform:uppercase;">// DOWNLOAD SELESAI</p>
+            <p id="complete-filename" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px;"></p>
+          </div>
+        </div>
+        <a id="complete-download-link" href="#" class="btn-primary" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:8px;display:flex;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          SIMPAN FILE
+        </a>
+        <button onclick="resetForm()" class="btn-ghost" style="width:100%;justify-content:center;">[ DOWNLOAD LAGI ]</button>
+      </div>
+    </div>
 
-  <!-- ─── Toast Container ────────────────────────────────────────────────────── -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-xs"></div>
+  </div><!-- /panel-single -->
 
-  <!-- ─── App Script ─────────────────────────────────────────────────────────── -->
-  <script src="/js/app.js"></script>
+  <!-- ── BATCH PANEL ──────────────────────────────────────────────────────── -->
+  <div id="panel-batch" style="display:none;">
+    <div class="card" style="padding:20px;margin-bottom:16px;">
+      <label for="batch-textarea" class="lbl">// YouTube URLs — Satu URL per baris (maks. 10)</label>
+      <textarea id="batch-textarea" class="inp"
+        placeholder="https://www.youtube.com/watch?v=example1&#10;https://www.youtube.com/watch?v=example2"
+        spellcheck="false"></textarea>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+        <div>
+          <label class="lbl">// Format</label>
+          <div style="display:flex;gap:6px;">
+            <button id="batch-fmt-mp4" class="fmt-btn active" onclick="selectBatchFormat('mp4')">MP4</button>
+            <button id="batch-fmt-mp3" class="fmt-btn" onclick="selectBatchFormat('mp3')">MP3</button>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">// Kualitas</label>
+          <select id="batch-quality" class="inp" style="height:34px;padding:0 10px;">
+            <option value="720p">720p</option>
+            <option value="360p">360p</option>
+            <option value="1080p">1080p</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #1E1E1E;padding-top:16px;margin-top:16px;">
+        <button id="batch-download-btn" onclick="startBatchDownload()" class="btn-primary" style="width:100%;justify-content:center;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          MULAI BATCH DOWNLOAD
+        </button>
+      </div>
+    </div>
+
+    <div id="batch-queue" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast-container" style="position:fixed;bottom:20px;right:20px;z-index:100;display:flex;flex-direction:column;gap:8px;max-width:320px;"></div>
+
+<script src="/js/app.js"></script>
 </body>
 </html>

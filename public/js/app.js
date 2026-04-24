@@ -42,7 +42,6 @@ function initSocket() {
     updateJobUI(jobId, { status: 'completed', progress: 100, label: 'Selesai!', filename, fileUrl });
     showCompleteCard(filename, fileUrl);
     showToast('Download selesai! File siap diunduh.', 'success');
-    loadHistory();
     state.isDownloading = false;
     resetDownloadButton();
   });
@@ -58,14 +57,16 @@ function initSocket() {
 
 // ─── Health Indicator ─────────────────────────────────────────────────────────
 function setHealthStatus(online) {
-  const dot = document.getElementById('health-dot');
+  const dot  = document.getElementById('health-dot');
   const text = document.getElementById('health-text');
   if (online) {
-    dot.className = 'w-1.5 h-1.5 rounded-full bg-ink-950';
-    text.textContent = 'Online';
+    dot.className = 'dot-online';
+    text.textContent = 'ONLINE';
+    text.style.color = '#2563EB';
   } else {
-    dot.className = 'w-1.5 h-1.5 rounded-full bg-ink-300';
-    text.textContent = 'Offline';
+    dot.className = 'dot-offline';
+    text.textContent = 'OFFLINE';
+    text.style.color = '#333';
   }
 }
 
@@ -82,17 +83,13 @@ async function checkHealth() {
 
 // ─── Tab Switching ────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  const tabs = ['single', 'batch'];
-  tabs.forEach((t) => {
-    const btn = document.getElementById(`tab-${t}`);
+  ['single', 'batch'].forEach((t) => {
+    const btn   = document.getElementById(`tab-${t}`);
     const panel = document.getElementById(`panel-${t}`);
     const isActive = t === tab;
     btn.classList.toggle('active', isActive);
-    btn.classList.toggle('text-ink-500', !isActive);
-    panel.classList.toggle('hidden', !isActive);
+    panel.style.display = isActive ? 'block' : 'none';
   });
-
-  // Update batch quality options when switching to batch
   if (tab === 'batch') updateBatchQualityOptions();
 }
 
@@ -102,7 +99,6 @@ let debounceTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
   initSocket();
   checkHealth();
-  loadHistory();
 
   const urlInput = document.getElementById('url-input');
   urlInput.addEventListener('input', () => {
@@ -128,34 +124,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function validateUrlInput(url) {
-  const indicator = document.getElementById('url-indicator');
-  const validIcon = document.getElementById('url-valid-icon');
+  const indicator  = document.getElementById('url-indicator');
+  const validIcon  = document.getElementById('url-valid-icon');
   const invalidIcon = document.getElementById('url-invalid-icon');
-  const fetchBtn = document.getElementById('fetch-btn');
+  const fetchBtn   = document.getElementById('fetch-btn');
 
-  indicator.classList.remove('hidden');
+  indicator.style.display = 'block';
 
   if (YT_REGEX.test(url)) {
-    validIcon.classList.remove('hidden');
-    invalidIcon.classList.add('hidden');
+    validIcon.style.display   = 'block';
+    invalidIcon.style.display = 'none';
     fetchBtn.disabled = false;
-    fetchBtn.classList.remove('opacity-40', 'cursor-not-allowed');
   } else {
-    validIcon.classList.add('hidden');
-    invalidIcon.classList.remove('hidden');
+    validIcon.style.display   = 'none';
+    invalidIcon.style.display = 'block';
     fetchBtn.disabled = true;
-    fetchBtn.classList.add('opacity-40', 'cursor-not-allowed');
   }
 }
 
 function hideUrlIndicator() {
-  document.getElementById('url-indicator').classList.add('hidden');
+  document.getElementById('url-indicator').style.display = 'none';
 }
 
 function disableFetchBtn() {
-  const btn = document.getElementById('fetch-btn');
-  btn.disabled = true;
-  btn.classList.add('opacity-40', 'cursor-not-allowed');
+  document.getElementById('fetch-btn').disabled = true;
 }
 
 // ─── Fetch Video Info ─────────────────────────────────────────────────────────
@@ -204,65 +196,52 @@ function showVideoInfoCard(info) {
   document.getElementById('video-channel').textContent = info.channel;
   document.getElementById('video-duration-text').textContent = info.durationFormatted;
   document.getElementById('video-duration-badge').textContent = info.durationFormatted;
-  document.getElementById('video-info-card').classList.remove('hidden');
+  document.getElementById('video-info-card').style.display = 'block';
 }
 
 function showFormatQualitySection(availableFormats) {
-  // Update available video quality buttons
   const allVideoQualities = ['360p', '720p', '1080p'];
   allVideoQualities.forEach((q) => {
     const btn = document.querySelector(`#video-qualities [data-quality="${q}"]`);
     if (!btn) return;
     const available = availableFormats?.video?.includes(q) ?? true;
     btn.disabled = !available;
-    btn.classList.toggle('opacity-30', !available);
-    btn.classList.toggle('cursor-not-allowed', !available);
+    btn.style.opacity = available ? '' : '0.2';
+    btn.style.cursor  = available ? '' : 'not-allowed';
   });
-
-  document.getElementById('format-quality-section').classList.remove('hidden');
+  document.getElementById('format-quality-section').style.display = 'block';
 }
 
 function clearVideoInfo() {
   state.currentVideoInfo = null;
   document.getElementById('url-input').value = '';
-  document.getElementById('video-info-card').classList.add('hidden');
-  document.getElementById('format-quality-section').classList.add('hidden');
-  document.getElementById('progress-section').classList.add('hidden');
-  document.getElementById('complete-card').classList.add('hidden');
+  document.getElementById('video-info-card').style.display        = 'none';
+  document.getElementById('format-quality-section').style.display = 'none';
+  document.getElementById('progress-section').style.display       = 'none';
+  document.getElementById('complete-card').style.display          = 'none';
   hideUrlIndicator();
   disableFetchBtn();
-  document.getElementById('url-error').classList.add('hidden');
+  document.getElementById('url-error').style.display = 'none';
 }
 
 // ─── Format & Quality Selection ───────────────────────────────────────────────
 function selectFormat(fmt) {
   state.selectedFormat = fmt;
 
-  document.querySelectorAll('.format-btn:not([id^="batch"])').forEach((btn) => {
-    btn.classList.remove('selected');
-    btn.classList.add('text-ink-600');
+  ['mp4', 'mp3'].forEach((f) => {
+    document.getElementById(`fmt-${f}`).classList.toggle('active', f === fmt);
   });
-  const selected = document.getElementById(`fmt-${fmt}`);
-  selected.classList.add('selected');
-  selected.classList.remove('text-ink-600');
 
-  // Toggle quality groups
   const videoQ = document.getElementById('video-qualities');
   const audioQ = document.getElementById('audio-qualities');
   if (fmt === 'mp4') {
-    videoQ.classList.remove('hidden');
-    videoQ.classList.add('flex');
-    audioQ.classList.add('hidden');
-    audioQ.classList.remove('flex');
-    // Select first video quality
-    const firstVideoBtn = videoQ.querySelector('.quality-btn:not(:disabled)');
+    videoQ.style.display = 'flex';
+    audioQ.style.display = 'none';
+    const firstVideoBtn = videoQ.querySelector('.qual-btn:not(:disabled)');
     if (firstVideoBtn) selectQuality(firstVideoBtn);
   } else {
-    audioQ.classList.remove('hidden');
-    audioQ.classList.add('flex');
-    videoQ.classList.add('hidden');
-    videoQ.classList.remove('flex');
-    // Select 320kbps by default
+    audioQ.style.display = 'flex';
+    videoQ.style.display = 'none';
     const hqBtn = audioQ.querySelector('[data-quality="320kbps"]');
     if (hqBtn) selectQuality(hqBtn);
   }
@@ -270,12 +249,8 @@ function selectFormat(fmt) {
 
 function selectQuality(btn) {
   const parent = btn.closest('#video-qualities, #audio-qualities');
-  parent.querySelectorAll('.quality-btn').forEach((b) => {
-    b.classList.remove('selected');
-    b.classList.add('text-ink-600');
-  });
-  btn.classList.add('selected');
-  btn.classList.remove('text-ink-600');
+  parent.querySelectorAll('.qual-btn').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
   state.selectedQuality = btn.dataset.quality;
 }
 
@@ -289,19 +264,17 @@ async function startSingleDownload() {
 
   state.isDownloading = true;
 
-  // Show progress section
   const progressSection = document.getElementById('progress-section');
-  progressSection.classList.remove('hidden');
-  document.getElementById('complete-card').classList.add('hidden');
-  document.getElementById('progress-title').textContent = state.currentVideoInfo.title;
+  progressSection.style.display = 'block';
+  document.getElementById('complete-card').style.display = 'none';
+  document.getElementById('progress-title').textContent    = state.currentVideoInfo.title;
   document.getElementById('progress-subtitle').textContent = `${state.selectedFormat.toUpperCase()} · ${state.selectedQuality}`;
   updateProgressBar(0, 'Memulai download...');
 
-  // Update download button
-  const btn = document.getElementById('download-btn');
+  const btn     = document.getElementById('download-btn');
   const btnText = document.getElementById('download-btn-text');
   btn.disabled = true;
-  btnText.textContent = 'Sedang Mengunduh...';
+  btnText.textContent = 'MENGUNDUH...';
 
   try {
     const res = await fetch('/api/download', {
@@ -338,22 +311,16 @@ async function startSingleDownload() {
 }
 
 function updateProgressBar(progress, label) {
-  const bar = document.getElementById('progress-bar');
-  const pct = document.getElementById('progress-percentage');
-  const badge = document.getElementById('progress-status-badge');
+  const bar  = document.getElementById('progress-bar');
+  const pct  = document.getElementById('progress-percentage');
+  const lbl  = document.getElementById('progress-status-label');
 
   bar.style.width = `${progress}%`;
-  if (progress >= 99) {
-    bar.classList.add('processing');
-  } else {
-    bar.classList.remove('processing');
-  }
+  if (progress >= 99) bar.classList.add('processing');
+  else bar.classList.remove('processing');
 
   pct.textContent = `${progress}%`;
-  badge.innerHTML = `
-    <div class="spinner w-3 h-3 flex-shrink-0"></div>
-    <span>${label}</span>
-  `;
+  if (lbl) lbl.textContent = label ? label.toUpperCase() : '';
 }
 
 function updateJobUI(jobId, { status, progress, label, filename, fileUrl }) {
@@ -384,9 +351,9 @@ function updateJobUI(jobId, { status, progress, label, filename, fileUrl }) {
 }
 
 function showCompleteCard(filename, fileUrl) {
-  document.getElementById('progress-section').classList.add('hidden');
+  document.getElementById('progress-section').style.display = 'none';
   const card = document.getElementById('complete-card');
-  card.classList.remove('hidden');
+  card.style.display = 'block';
   document.getElementById('complete-filename').textContent = filename || 'File siap';
   const link = document.getElementById('complete-download-link');
   link.href = fileUrl || '#';
@@ -394,20 +361,20 @@ function showCompleteCard(filename, fileUrl) {
 }
 
 function hideProgressSection() {
-  document.getElementById('progress-section').classList.add('hidden');
+  document.getElementById('progress-section').style.display = 'none';
 }
 
 function resetDownloadButton() {
-  const btn = document.getElementById('download-btn');
+  const btn     = document.getElementById('download-btn');
   const btnText = document.getElementById('download-btn-text');
   btn.disabled = false;
-  btnText.textContent = 'Mulai Download';
+  btnText.textContent = 'MULAI DOWNLOAD';
 }
 
 function resetForm() {
   clearVideoInfo();
-  hideProgressSection();
-  document.getElementById('complete-card').classList.add('hidden');
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('complete-card').style.display    = 'none';
   state.isDownloading = false;
   resetDownloadButton();
 }
@@ -415,13 +382,9 @@ function resetForm() {
 // ─── Batch Download ───────────────────────────────────────────────────────────
 function selectBatchFormat(fmt) {
   state.batchFormat = fmt;
-
   ['mp4', 'mp3'].forEach((f) => {
-    const btn = document.getElementById(`batch-fmt-${f}`);
-    btn.classList.toggle('selected', f === fmt);
-    btn.classList.toggle('text-ink-600', f !== fmt);
+    document.getElementById(`batch-fmt-${f}`).classList.toggle('active', f === fmt);
   });
-
   updateBatchQualityOptions();
 }
 
@@ -533,95 +496,32 @@ async function startBatchDownload() {
   }
 }
 
-// ─── Download History ─────────────────────────────────────────────────────────
-async function loadHistory() {
-  const container = document.getElementById('history-container');
-  try {
-    const res = await fetch('/api/files');
-    const data = await res.json();
-
-    if (!data.success || data.data.length === 0) {
-      container.innerHTML = '<p class="text-sm text-ink-400 text-center py-8">Belum ada riwayat download.</p>';
-      return;
-    }
-
-    let html = '';
-    data.data.forEach(({ date, files }) => {
-      html += `
-        <div class="mb-5">
-          <p class="text-xs font-medium text-ink-500 uppercase tracking-wider mb-2.5">${formatDate(date)}</p>
-          <div class="bg-white border border-ink-200 rounded-xl overflow-hidden divide-y divide-ink-100">
-      `;
-      files.forEach((file) => {
-        const ext = file.name.split('.').pop().toUpperCase();
-        html += `
-          <div class="flex items-center gap-3 px-4 py-3 hover:bg-ink-50 transition-colors group">
-            <div class="w-8 h-8 bg-ink-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span class="text-xs font-semibold font-mono text-ink-600">${ext}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm text-ink-950 truncate font-medium">${decodeURIComponent(file.name)}</p>
-              <p class="text-xs text-ink-400">${file.sizeFormatted}</p>
-            </div>
-            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <a href="${file.url}" download="${file.name}" class="text-xs font-medium text-ink-600 hover:text-ink-950 transition-colors">Unduh</a>
-              <button onclick="deleteFile('${date}', '${encodeURIComponent(file.name)}')" class="text-xs text-ink-400 hover:text-red-500 transition-colors">Hapus</button>
-            </div>
-          </div>
-        `;
-      });
-      html += `</div></div>`;
-    });
-
-    container.innerHTML = html;
-  } catch (err) {
-    container.innerHTML = '<p class="text-sm text-ink-400 text-center py-8">Gagal memuat riwayat.</p>';
-  }
-}
-
-async function deleteFile(dateFolder, filename) {
-  if (!confirm(`Hapus file "${decodeURIComponent(filename)}"?`)) return;
-
-  try {
-    const res = await fetch(`/api/files/${dateFolder}/${filename}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      showToast('File berhasil dihapus.', 'success');
-      loadHistory();
-    } else {
-      showToast(data.error || 'Gagal menghapus file.', 'error');
-    }
-  } catch {
-    showToast('Gagal menghapus file.', 'error');
-  }
-}
-
-function formatDate(dateStr) {
-  try {
-    const [y, m, d] = dateStr.split('-');
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
-
 // ─── Toast Notifications ──────────────────────────────────────────────────────
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   const id = `toast-${Date.now()}`;
-  const bgClass = type === 'error' ? 'bg-ink-950 text-white' : 'bg-white border border-ink-200 text-ink-950';
+  const isError = type === 'error';
 
   const toast = document.createElement('div');
   toast.id = id;
-  toast.className = `toast ${bgClass} text-xs font-medium px-4 py-3 rounded-lg shadow-lg flex items-center gap-2.5 max-w-xs`;
+  toast.className = 'toast';
+  toast.style.cssText = `
+    background: ${isError ? '#EF4444' : '#111111'};
+    border: 1px solid ${isError ? '#EF4444' : '#2563EB'};
+    border-left: 3px solid ${isError ? '#B91C1C' : '#2563EB'};
+    color: #F0F0F0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .04em;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  `;
   toast.innerHTML = `
-    <span class="flex-1">${message}</span>
-    <button onclick="document.getElementById('${id}').remove()" class="opacity-50 hover:opacity-100 transition-opacity flex-shrink-0">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-    </button>
+    <span style="flex:1;line-height:1.5;">${message}</span>
+    <button onclick="document.getElementById('${id}').remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:14px;padding:0;line-height:1;">×</button>
   `;
 
   container.appendChild(toast);
