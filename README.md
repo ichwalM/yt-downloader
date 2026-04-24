@@ -105,6 +105,25 @@ yt-downloader-walz/
 
 ---
 
+
 ## ⚠️ Disclaimer
 
 Aplikasi ini hanya untuk penggunaan pribadi dan edukasi. Pastikan Anda memiliki hak atas konten yang diunduh. Mengunduh konten yang dilindungi hak cipta tanpa izin dapat melanggar Terms of Service YouTube.
+
+---
+
+## 🌐 Deploy ke VPS
+
+Untuk panduan lengkap deploy ke server VPS (Ubuntu/Debian) dengan PM2, Nginx, SSL, dan monitoring:
+
+👉 **[docs/DEPLOY.md](./docs/DEPLOY.md)**
+
+Mencakup:
+- Setup user non-root & firewall
+- Install Node.js, yt-dlp, FFmpeg di Linux
+- Process management dengan PM2 (auto-restart)
+- Nginx reverse proxy + WebSocket support
+- SSL gratis dengan Let's Encrypt
+- Cron job cleanup & auto-update yt-dlp
+- Troubleshooting lengkap
+

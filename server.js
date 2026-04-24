@@ -51,8 +51,29 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 // ─── Static Files ──────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve downloaded files (with date-organized structure)
-app.use('/downloads', express.static(DOWNLOAD_DIR));
+// ─── Serve Downloaded Files (with proper Content-Disposition) ─────────────────
+// This ensures the browser downloads with the correct filename instead of UUID
+app.get('/downloads/:dateFolder/:filename', (req, res) => {
+  const { dateFolder, filename } = req.params;
+
+  // Validate date folder format (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFolder)) {
+    return res.status(400).send('Invalid path');
+  }
+
+  const decodedFilename = decodeURIComponent(filename);
+  const safeDateFolder = path.basename(dateFolder);
+  const safeFilename = path.basename(decodedFilename);
+  const filePath = path.join(DOWNLOAD_DIR, safeDateFolder, safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ success: false, error: 'File tidak ditemukan di server.' });
+  }
+
+  // Set Content-Disposition: attachment so browser saves (not opens) the file
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeFilename)}`);
+  res.sendFile(filePath);
+});
 
 // ─── Socket.io ────────────────────────────────────────────────────────────────
 // Attach io instance to app for access in routes

@@ -12,8 +12,8 @@ const state = {
   isDownloading: false
 };
 
-// YouTube URL regex
-const YT_REGEX = /^(https?:\/\/)?(www\.|m\.)?youtube\.com\/watch\?v=[\w-]{11}(&.*)?$|^(https?:\/\/)?youtu\.be\/[\w-]{11}(\?.*)?$/;
+// YouTube URL regex — accepts watch?v=, youtu.be/, and playlist variants
+const YT_REGEX = /youtube\.com\/watch\?.*v=[\w-]{11}|youtu\.be\/[\w-]{11}/;
 
 // ─── Socket.io Setup ──────────────────────────────────────────────────────────
 function initSocket() {

@@ -26,7 +26,7 @@ const FFMPEG_LOCATION = fs.existsSync(path.join(LOCAL_FFMPEG_DIR, 'ffmpeg.exe'))
 const activeJobs = new Map();
 
 /**
- * Run yt-dlp with given args, returns a Promise with stdout
+ * Run yt-dlp with given args, returns a Promise with combined output
  */
 const runYtDlp = (args) => {
   return new Promise((resolve, reject) => {
@@ -44,7 +44,7 @@ const runYtDlp = (args) => {
     proc.on('close', (code) => {
       const output = Buffer.concat(chunks).toString('utf8');
       if (code === 0) resolve(output);
-      else reject(new Error(`yt-dlp exited with code ${code}: ${output.slice(-300)}`));
+      else reject(new Error(`yt-dlp exited with code ${code}: ${output.slice(-400)}`));
     });
   });
 };
@@ -62,21 +62,15 @@ const getVideoInfo = async (url) => {
 
   console.log(`[yt-dlp] Fetching info: ${url}`);
 
-  let output;
-  try {
-    output = await runYtDlp([
-      url,
-      '--dump-json',
-      '--no-playlist',
-      '--no-warnings',
-    ]);
-  } catch (err) {
-    throw err;
-  }
+  const output = await runYtDlp([
+    url,
+    '--dump-json',
+    '--no-playlist',
+    '--no-warnings',
+  ]);
 
   let meta;
   try {
-    // Take first valid JSON line (some URLs output multiple)
     const lines = output.split('\n').filter((l) => l.trim().startsWith('{'));
     meta = JSON.parse(lines[0]);
   } catch {
@@ -144,14 +138,50 @@ const _runDownload = (jobId, url, format, quality, todayDir, socketId, io) => {
     if (job) { job.status = 'starting'; activeJobs.set(jobId, job); }
 
     if (io && socketId) io.to(socketId).emit('download:start', { jobId, format, quality });
-    console.log(`[Job ${jobId}] Starting: ${url} [${format}@${quality}]`);
+    console.log(`[Job ${jobId.slice(0, 8)}] Start: ${url} [${format}@${quality}]`);
 
     const proc = spawn(YTDLP_BIN, args, { windowsHide: true });
-    let lastProgress = -1;
-    let outputFilename = null;
 
+    let lastProgress = -1;
+    let finalFilePath = null;  // Captured via --print after_move:filepath
+    let allOutput = '';
+
+    // ── Handle each line of output (stdout + stderr combined) ──────────────
     const handleLine = (line) => {
-      // Progress percent
+      if (!line.trim()) return;
+      allOutput += line + '\n';
+
+      // 1. Capture final file path from --print after_move:filepath
+      //    yt-dlp prints the absolute path of the final file to stdout
+      if (line.trim().length > 3 && !line.startsWith('[') && !line.startsWith('ERROR') && !line.includes('%')) {
+        const trimmed = line.trim();
+        // Check if it looks like an absolute file path that exists
+        if (path.isAbsolute(trimmed) && trimmed.includes(path.sep) && !finalFilePath) {
+          // Will verify existence after process closes
+          finalFilePath = trimmed;
+          console.log(`[Job ${jobId.slice(0, 8)}] Captured path: ${trimmed}`);
+        }
+      }
+
+      // 2. Also capture from [download] Destination: and [Merger] lines (fallback)
+      const destMatch = line.match(/\[(?:download|ExtractAudio|MoveFiles)\] Destination:\s*(.+)/i);
+      if (destMatch) {
+        finalFilePath = destMatch[1].trim();
+        console.log(`[Job ${jobId.slice(0, 8)}] Destination: ${finalFilePath}`);
+      }
+      const mergeMatch = line.match(/\[Merger\] Merging formats into "(.+)"/);
+      if (mergeMatch) {
+        finalFilePath = mergeMatch[1].trim();
+        console.log(`[Job ${jobId.slice(0, 8)}] Merged into: ${finalFilePath}`);
+      }
+      // ffmpeg conversion output
+      const ffDestMatch = line.match(/\[ffmpeg\] Destination:\s*(.+)/i);
+      if (ffDestMatch) {
+        finalFilePath = ffDestMatch[1].trim();
+        console.log(`[Job ${jobId.slice(0, 8)}] FFmpeg dest: ${finalFilePath}`);
+      }
+
+      // 3. Progress tracking
       const pctMatch = line.match(/(\d+\.?\d*)%/);
       if (pctMatch) {
         const pct = Math.round(parseFloat(pctMatch[1]));
@@ -162,26 +192,24 @@ const _runDownload = (jobId, url, format, quality, todayDir, socketId, io) => {
           if (io && socketId) io.to(socketId).emit('download:progress', { jobId, progress: pct, status: 'downloading' });
         }
       }
-      // Merging/converting
-      if (line.includes('Merging') || line.includes('ffmpeg') || line.includes('Converting')) {
+
+      // 4. Merging/processing stage
+      if (line.includes('Merging') || line.includes('Converting') || line.includes('[ffmpeg]')) {
         const j = activeJobs.get(jobId);
-        if (j) { j.status = 'processing'; activeJobs.set(jobId, j); }
-        if (io && socketId) io.to(socketId).emit('download:progress', { jobId, progress: 99, status: 'processing' });
+        if (j && j.status !== 'processing') {
+          j.status = 'processing';
+          activeJobs.set(jobId, j);
+          if (io && socketId) io.to(socketId).emit('download:progress', { jobId, progress: 99, status: 'processing' });
+        }
       }
-      // Capture destination filename
-      const destMatch = line.match(/\[(?:download|ExtractAudio)\] Destination: (.+)/);
-      if (destMatch) outputFilename = destMatch[1].trim();
-      const mergMatch = line.match(/\[Merger\] Merging formats into "(.+)"/);
-      if (mergMatch) outputFilename = mergMatch[1].trim();
     };
 
-    let stderr = '';
-    proc.stdout.on('data', (d) => d.toString().split('\n').forEach(handleLine));
-    proc.stderr.on('data', (d) => { stderr += d.toString(); d.toString().split('\n').forEach(handleLine); });
+    proc.stdout.on('data', (d) => d.toString('utf8').split('\n').forEach(handleLine));
+    proc.stderr.on('data', (d) => d.toString('utf8').split('\n').forEach(handleLine));
 
     proc.on('error', (err) => {
       if (err.code === 'ENOENT') {
-        reject(new Error('yt-dlp tidak ditemukan. Letakkan yt-dlp.exe di folder bin/ atau tambahkan ke PATH.'));
+        reject(new Error('yt-dlp tidak ditemukan. Letakkan yt-dlp.exe di folder bin/.'));
       } else {
         reject(err);
       }
@@ -189,18 +217,39 @@ const _runDownload = (jobId, url, format, quality, todayDir, socketId, io) => {
 
     proc.on('close', (code) => {
       if (code !== 0) {
-        return reject(new Error(`Download gagal (kode ${code}). ${stderr.slice(-200)}`));
+        console.error(`[Job ${jobId.slice(0, 8)}] Failed (code ${code})`);
+        return reject(new Error(`Download gagal (kode ${code}). Coba lagi atau cek koneksi internet.`));
       }
 
-      if (!outputFilename) outputFilename = _findNewestFile(todayDir);
+      // ── Resolve final filename ─────────────────────────────────────────────
+      // 1. Verify captured path exists
+      if (finalFilePath && fs.existsSync(finalFilePath)) {
+        console.log(`[Job ${jobId.slice(0, 8)}] Final file (captured): ${finalFilePath}`);
+      } else {
+        // 2. Fallback: scan todayDir for newest file created/modified after job start
+        finalFilePath = _findNewestFileInDir(todayDir);
+        console.log(`[Job ${jobId.slice(0, 8)}] Final file (scan): ${finalFilePath}`);
+      }
 
-      const filename = outputFilename ? path.basename(outputFilename) : null;
+      const filename = finalFilePath ? path.basename(finalFilePath) : null;
       const dateFolder = fileService.getTodayFolder();
+      // Use encodeURIComponent only on filename, not slashes
       const fileUrl = filename ? `/downloads/${dateFolder}/${encodeURIComponent(filename)}` : null;
 
+      console.log(`[Job ${jobId.slice(0, 8)}] Done → ${filename} | ${fileUrl}`);
+
       const j = activeJobs.get(jobId);
-      if (j) { j.status = 'completed'; j.progress = 100; j.filename = filename; j.fileUrl = fileUrl; activeJobs.set(jobId, j); }
-      if (io && socketId) io.to(socketId).emit('download:complete', { jobId, filename, fileUrl, format, quality });
+      if (j) {
+        j.status = 'completed';
+        j.progress = 100;
+        j.filename = filename;
+        j.fileUrl = fileUrl;
+        activeJobs.set(jobId, j);
+      }
+
+      if (io && socketId) {
+        io.to(socketId).emit('download:complete', { jobId, filename, fileUrl, format, quality });
+      }
 
       setTimeout(() => activeJobs.delete(jobId), 30 * 60 * 1000);
       resolve({ jobId, filename, fileUrl });
@@ -208,8 +257,13 @@ const _runDownload = (jobId, url, format, quality, todayDir, socketId, io) => {
   });
 };
 
+/**
+ * Build yt-dlp CLI arguments
+ * Key: use --print after_move:filepath to reliably get the final output path
+ */
 const _buildArgs = (url, format, quality, outputDir) => {
   const outputTemplate = path.join(outputDir, '%(title)s.%(ext)s');
+
   const base = [
     url,
     '--output', outputTemplate,
@@ -219,6 +273,7 @@ const _buildArgs = (url, format, quality, outputDir) => {
     '--progress',
     '--newline',
     '--no-warnings',
+    '--print', 'after_move:filepath',  // ← Print final file path after all processing
   ];
 
   if (FFMPEG_LOCATION) {
@@ -226,15 +281,29 @@ const _buildArgs = (url, format, quality, outputDir) => {
   }
 
   if (format === 'mp3') {
-    return [...base, '--extract-audio', '--audio-format', 'mp3', '--audio-quality', getAudioBitrate(quality) + 'K'];
+    return [
+      ...base,
+      '--extract-audio',
+      '--audio-format', 'mp3',
+      '--audio-quality', getAudioBitrate(quality) + 'K',
+    ];
   }
 
-  return [...base, '--format', getFormatSelector(format, quality), '--merge-output-format', 'mp4'];
+  return [
+    ...base,
+    '--format', getFormatSelector(format, quality),
+    '--merge-output-format', 'mp4',
+  ];
 };
 
-const _findNewestFile = (dir) => {
+/**
+ * Find the most recently modified file in a directory
+ */
+const _findNewestFileInDir = (dir) => {
   try {
+    if (!fs.existsSync(dir)) return null;
     const files = fs.readdirSync(dir)
+      .filter((f) => !f.startsWith('.'))
       .map((f) => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
       .sort((a, b) => b.mtime - a.mtime);
     return files[0] ? path.join(dir, files[0].name) : null;

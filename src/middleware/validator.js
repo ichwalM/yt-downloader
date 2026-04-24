@@ -5,11 +5,28 @@ const { body, query, validationResult } = require('express-validator');
 /**
  * Valid YouTube URL patterns:
  * - https://www.youtube.com/watch?v=VIDEO_ID
+ * - https://www.youtube.com/watch?v=VIDEO_ID&list=...
  * - https://youtu.be/VIDEO_ID
  * - https://youtube.com/watch?v=VIDEO_ID
  * - https://m.youtube.com/watch?v=VIDEO_ID
+ *
+ * Extracts only the video ID — playlist and extra params are stripped before download.
  */
-const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.|m\.)?youtube\.com\/watch\?v=[\w-]{11}(&.*)?$|^(https?:\/\/)?youtu\.be\/[\w-]{11}(\?.*)?$/;
+const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.|m\.)?youtube\.com\/watch\?.*v=[\w-]{11}|^(https?:\/\/)?youtu\.be\/[\w-]{11}/;
+
+/**
+ * Extract clean video-only URL (strip playlist params)
+ */
+const cleanYouTubeUrl = (url) => {
+  if (!url) return url;
+  // For youtu.be short links
+  const shortMatch = url.match(/(https?:\/\/)?youtu\.be\/(\w[\w-]{10})/);
+  if (shortMatch) return `https://youtu.be/${shortMatch[2]}`;
+  // For youtube.com/watch?v= links — extract video ID and return clean URL
+  const longMatch = url.match(/v=([\w-]{11})/);
+  if (longMatch) return `https://www.youtube.com/watch?v=${longMatch[1]}`;
+  return url;
+};
 
 /**
  * Sanitize and validate a YouTube URL string
@@ -38,7 +55,7 @@ const isValidYouTubeUrl = (url) => {
 const validateInfoRequest = [
   query('url')
     .notEmpty().withMessage('URL wajib diisi')
-    .customSanitizer(sanitizeUrl)
+    .customSanitizer((val) => cleanYouTubeUrl(sanitizeUrl(val)))
     .custom((value) => {
       if (!isValidYouTubeUrl(value)) {
         throw new Error('URL YouTube tidak valid');
@@ -54,7 +71,7 @@ const validateInfoRequest = [
 const validateDownloadRequest = [
   body('url')
     .notEmpty().withMessage('URL wajib diisi')
-    .customSanitizer(sanitizeUrl)
+    .customSanitizer((val) => cleanYouTubeUrl(sanitizeUrl(val)))
     .custom((value) => {
       if (!isValidYouTubeUrl(value)) {
         throw new Error('URL YouTube tidak valid');
@@ -123,5 +140,6 @@ module.exports = {
   validateDownloadRequest,
   validateBatchDownloadRequest,
   isValidYouTubeUrl,
-  sanitizeUrl
+  sanitizeUrl,
+  cleanYouTubeUrl
 };
