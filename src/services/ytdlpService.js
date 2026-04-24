@@ -15,12 +15,16 @@ const {
 } = require('../utils/helpers');
 
 // Resolve yt-dlp binary: prefer local bin/ folder, then system PATH
-const LOCAL_YTDLP = path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe');
-const LOCAL_FFMPEG_DIR = path.join(__dirname, '..', '..', 'bin');
-const YTDLP_BIN = fs.existsSync(LOCAL_YTDLP) ? LOCAL_YTDLP : 'yt-dlp';
-const FFMPEG_LOCATION = fs.existsSync(path.join(LOCAL_FFMPEG_DIR, 'ffmpeg.exe'))
-  ? LOCAL_FFMPEG_DIR
-  : null;
+// const LOCAL_YTDLP = path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe');
+// const LOCAL_FFMPEG_DIR = path.join(__dirname, '..', '..', 'bin');
+// const YTDLP_BIN = fs.existsSync(LOCAL_YTDLP) ? LOCAL_YTDLP : 'yt-dlp';
+// const FFMPEG_LOCATION = fs.existsSync(path.join(LOCAL_FFMPEG_DIR, 'ffmpeg.exe'))
+//   ? LOCAL_FFMPEG_DIR
+//   : null;
+
+// Production Linux
+const YTDLP_BIN = 'yt-dlp';
+const FFMPEG_LOCATION = null;
 
 // Active download jobs map
 const activeJobs = new Map();
